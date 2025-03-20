@@ -1,14 +1,15 @@
 package com.springReactContactApp.web;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistration.ProviderDetails;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,20 +20,17 @@ import java.util.Map;
 
 @RestController
 public class UserController {
-    private final ClientRegistration registration;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
-    public UserController(ClientRegistrationRepository registrations) {
-        // if you are using Okta then findByRegistrationId paramater Okta otherwise
-        // auth0.
-        this.registration = registrations.findByRegistrationId("auth0");
+    @Autowired
+    public UserController(ClientRegistrationRepository clientRegistrationRepository) {
+        this.clientRegistrationRepository = clientRegistrationRepository;
     }
 
     @GetMapping("/api/user")
     public ResponseEntity<?> getUser(@AuthenticationPrincipal OAuth2User user) {
         if (user == null) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("authenticated", false);
-            return ResponseEntity.ok().body(response);
+            return new ResponseEntity<>("", HttpStatus.OK);
         } else {
             return ResponseEntity.ok().body(user.getAttributes());
         }
@@ -41,13 +39,28 @@ public class UserController {
     @PostMapping("/api/logout")
     public ResponseEntity<?> logout(HttpServletRequest request,
             @AuthenticationPrincipal(expression = "idToken") OidcIdToken idToken) {
-        // send logout URL to client so they can initiate logout
-        String logoutUrl = this.registration.getProviderDetails()
-                .getConfigurationMetadata().get("end_session_endpoint").toString();
+        ClientRegistration registration = this.clientRegistrationRepository.findByRegistrationId("auth0");
+        ProviderDetails providerDetails = registration.getProviderDetails();
+        String logoutUrl = providerDetails.getConfigurationMetadata().get("end_session_endpoint").toString();
+
         Map<String, String> logoutDetails = new HashMap<>();
         logoutDetails.put("logoutUrl", logoutUrl);
         logoutDetails.put("idToken", idToken.getTokenValue());
+        System.out.println("logoutDetails: " + logoutDetails);
         request.getSession(false).invalidate();
         return ResponseEntity.ok().body(logoutDetails);
     }
 }
+// @PostMapping("/api/logout")
+// public ResponseEntity<?> logout(HttpServletRequest request,
+// @AuthenticationPrincipal(expression = "idToken") OidcIdToken idToken) {
+// // send logout URL to client so they can initiate logout
+// String logoutUrl = this.registration.getProviderDetails()
+// .getConfigurationMetadata().get("end_session_endpoint").toString();
+
+// Map<String, String> logoutDetails = new HashMap<>();
+// logoutDetails.put("logoutUrl", logoutUrl);
+// logoutDetails.put("idToken", idToken.getTokenValue());
+// request.getSession(false).invalidate();
+// return ResponseEntity.ok().body(logoutDetails);
+// }
