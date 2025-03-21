@@ -2,27 +2,35 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Container } from 'reactstrap';
 import { useCookies } from 'react-cookie';
+import NavBarApp from './coreComp/NavBarApp';
 
 const Home = () => {
 
   const [authenticated, setAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(undefined);
   const [cookies] = useCookies(['XSRF-TOKEN']);
 
   useEffect(() => {
     // setLoading(true);
-    fetch('api/user', { credentials: 'include' })
-      .then(response => response.text())
-      .then(body => {
-        if (body === '') {
-          setAuthenticated(false);
-        } else {
-          setUser(JSON.parse(body));
-          setAuthenticated(true);
-        }
-        setLoading(false);
-      });
+    const fetchUser = async () => {
+      try {
+      const response = await fetch('api/user', { credentials: 'include' });
+      const body = await response.text();
+      if (body === '') {
+        setAuthenticated(false);
+      } else {
+        setUser(JSON.parse(body));
+        setAuthenticated(true);
+      }
+      } catch (error) {
+      console.error("Error fetching user:", error);
+      } finally {
+      setLoading(false);
+      }
+    };
+
+    fetchUser();
   }, [setAuthenticated, setLoading, setUser])
 
   const login = () => {
@@ -77,6 +85,7 @@ const Home = () => {
   return (
     <div>
       <Container fluid>
+        <NavBarApp user={user} authenticated={authenticated} />
         {message}
         {button}
       </Container>
