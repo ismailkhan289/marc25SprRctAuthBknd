@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.springReactContactApp.model.UserService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +23,9 @@ import java.util.Map;
 @RestController
 public class UserController {
     private final ClientRegistrationRepository clientRegistrationRepository;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     public UserController(ClientRegistrationRepository clientRegistrationRepository) {
@@ -32,6 +37,8 @@ public class UserController {
         if (user == null) {
             return new ResponseEntity<>("", HttpStatus.OK);
         } else {
+            userService.saveOrUpdatUser(user.getAttribute("sub"), user.getAttribute("email"),
+                    user.getAttribute("name"));
             return ResponseEntity.ok().body(user.getAttributes());
         }
     }
