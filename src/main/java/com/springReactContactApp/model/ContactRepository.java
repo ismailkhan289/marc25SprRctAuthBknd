@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ContactRepository extends JpaRepository<Contact, UUID> {
     Optional<Contact> findById(UUID id);
+
+    Optional<Contact> findByUserId(String userId);
 }

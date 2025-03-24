@@ -11,6 +11,11 @@ public class ContactService {
     @Autowired
     private UserRepository userRepository;
 
+    // public Contact getContactByUserId(String userId) {
+    // return contactRepository.findByUserId(userId);
+
+    // }
+
     public Contact saveContact(Contact contact, String userId) {
 
         if (!userRepository.existsById(userId)) {

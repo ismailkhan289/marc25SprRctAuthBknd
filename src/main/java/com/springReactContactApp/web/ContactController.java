@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
@@ -33,12 +34,14 @@ public class ContactController {
     private ContactService contactService;
 
     @GetMapping("/contacts")
-    public List<Contact> getAllContacts() {
-        return contactRepository.findAll();
+    public Optional<Contact> getAllContacts(@AuthenticationPrincipal OAuth2User principal) {
+        Map<String, Object> attributes = principal.getAttributes();
+        String userID = attributes.get("sub").toString();
+        return contactRepository.findByUserId(userID);
     }
 
-    @GetMapping("contact/{id}")
-    public ResponseEntity<Contact> getContactById(@PathVariable Long id) {
+    @GetMapping("/contact/{id}")
+    public ResponseEntity<Contact> getContactById(@PathVariable UUID id) {
         UUID uuid = UUID.fromString(id.toString());
         return contactRepository.findById(uuid)
                 .map(ResponseEntity::ok)
@@ -61,13 +64,11 @@ public class ContactController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
     }
 
-    // @PutMapping("/{id}")
-    // @PreAuthorize("hasAuthority('update:contacts')")
-    // public ResponseEntity<Contact> updateContact(@PathVariable UUID id,
-    // @RequestBody Contact contactDetails) {
-    // Contact updatedContact = ContactRepository.save(id, contactDetails);
-    // return ResponseEntity.ok(updatedContact);
-    // }
+    @PutMapping("/contact/{id}")
+    public ResponseEntity<Contact> updateContact(@PathVariable UUID id, @Valid @RequestBody Contact contactDetails) {
+        Contact updatedContact = contactRepository.save(contactDetails);
+        return ResponseEntity.ok(updatedContact);
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteContact(@PathVariable UUID id) {

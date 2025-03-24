@@ -20,7 +20,7 @@ const NavBarApp = ({ user, authenticated, logout, login }) => {
                 {authenticated ?
                     <Nav className="justify-content-end" style={{ width: "100%" }} navbar>
                         <NavItem>
-                            <NavLink tag={Link} to="/contacts">My Contacts</NavLink>
+                            <NavLink tag={Link} to="/contacts">My Contacts {user.name}</NavLink>
                         </NavItem>
                         <NavItem>
                             <NavLink href="https://www.linkedin.com/in/ismail-khan-289per/">LinkedIn</NavLink>
@@ -32,9 +32,11 @@ const NavBarApp = ({ user, authenticated, logout, login }) => {
                             <Button onClick={logout}>Logout</Button>
                         </NavItem>
                     </Nav>
-                    :   <NavItem>
+                    :<Nav className='justify-content-end' style={{ width: '100%' }} navbar>
+                        <NavItem>
                             <Button onClick={login}>Login</Button>
-                        </NavItem> };
+                        </NavItem>
+                    </Nav>};
             </Collapse>
         </Navbar>
         </>
