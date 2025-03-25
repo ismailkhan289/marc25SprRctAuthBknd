@@ -52,21 +52,27 @@ import { useParams } from 'react-router-dom';
         .catch(error => console.error('Error adding contact:', error));
     }
     // Function to fetch contact details & open modal
-  const toggleAndFetch = async (event,id) => {
-    event.preventDefault();
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/contact/${id}`);
-      if (!response.ok) throw new Error("Failed to fetch contact");
-      const data = await response.json();
-      setNewContact(data);  // ✅ Store fetched contact
-    } catch (error) {
-      console.error("Error fetching contact:", error);
-    } finally {
-      setLoading(false);
-      setModal(true);  // ✅ Open modal
+    const toggleAndFetch = async (event,id) => {
+        event.preventDefault();
+        setLoading(true);
+        try {
+        const response = await fetch(`/api/contact/${id}`);
+        if (!response.ok) throw new Error("Failed to fetch contact");
+        const data = await response.json();
+        setNewContact(data);  // ✅ Store fetched contact
+        } catch (error) {
+        console.error("Error fetching contact:", error);
+        } finally {
+        setLoading(false);
+        setModal(true);  // ✅ Open modal
+        }
     }
-  }
+    // Function to close modal & reset form
+    const handleCancel = () => {
+        setNewContact(initialNewContactValues);
+        toggle();
+    };
+    // Function to Edit and update contact details
     const myContactEditUpdate = async (event, id) => {
         event.preventDefault();
         //send a PUT request to the server
@@ -89,10 +95,32 @@ import { useParams } from 'react-router-dom';
         }) 
         .catch(error => console.error('Error updating contact:', error));
     }
-    const handleCancel = () => {
-        setNewContact(initialNewContactValues);
-        toggle();
-    };
+
+    // Function to delete contact
+    const reomveContact = async (event, id) => {
+        event.preventDefault();
+        if (!window.confirm("Are you sure you want to delete this contact?")) return;
+        //send a DELETE request to the server
+       try{
+        const response = await fetch(`api/contact/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken() // ✅ CSRF Token Add
+            },
+            credentials: 'include'
+        })
+        //parse the response
+        if (!response.ok) throw new Error("Failed to delete contact");
+        fetchContacts();
+        }
+        catch (error) {
+            console.error('Error deleting contact:', error);
+        }
+    }
+       
+    
     const ContactCard=({myContact})=>{
         return(
         <Card className="d-flex flex-row shadow-sm border-0 rounded" style={{ maxWidth: "500px", backgroundColor: "#f5f5dc"}} onClick={(event) => toggleAndFetch(event, myContact.id)}>
@@ -121,125 +149,87 @@ import { useParams } from 'react-router-dom';
           {/* Buttons */}
             <div className="d-flex justify-content-end align-items-center">
             <Button color="primary" size="sm" className='me-2'>View Profile</Button>
-            <Button color="danger" size="sm">Delete</Button>
+            <Button color="danger" size="sm" onClick={(e)=>{e.stopPropagation(); reomveContact(e, myContact.id)}}>Delete</Button>
             </div>
         </CardBody>
           </Card>
         )
     };
 
-    
-        // const handleSubmit = async () => {
-        //     const url =`api/contact`;
-        //     // const url = newContact.id ? `api/contacts/${newContact.id}` : 'api/contacts';
-        //     const method = newContact.id ? 'PUT' : 'POST';
-        //     const headers = {
-        //     'Content-Type': 'application/json',
-        //     'Accept':'application/json' // Replace with your actual auth token
-        //     };
-        //     // const credientials = 'include';
-        //     try {
-        //     const response = await fetch(url, {
-        //         method: method,
-        //         headers: headers,
-        //         credentials: 'include',
-                
-        //         body: JSON.stringify(newContact)
-        //     });
-
-        //     if (!response.ok) {
-        //         throw new Error('Network response was not ok');
-        //     }
-
-        //     const savedContact = await response.json();
-
-        //     if (method === 'POST') {
-        //         setContacts([...contacts, savedContact]);
-        //     } else {
-        //         setContacts(contacts.map(contact => contact.id === savedContact.id ? savedContact : contact));
-        //     }
-
-        //     setNewContact(initialNewContactValues);
-        //     toggle();
-        //     } catch (error) {
-        //     console.error('Error saving contact:', error);
-        //     }
-        // };
-
-        //fetching contacts
-        useEffect(() => {
-            const fetchContacts = async () => {
-                try {
-                    const response = await fetch('api/contacts');
-                    const data = await response.json();
-                    setContacts(data);
-                } catch (error) {
-                    console.error("Error fetching contacts: ", error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchContacts();
-        }, []);
-
-        if (loading) {
-            return <p>Fetching Contacts Loading...</p>;
+    //fetching contacts
+    const fetchContacts = async () => {
+        try {
+            const response = await fetch('api/contacts');
+            const data = await response.json();
+            setContacts(data);
+        } catch (error) {
+            console.error("Error fetching contacts: ", error);
+        } finally {
+            setLoading(false);
         }
-
-        return (
-            <div className='container'>
-            <div className='row' style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                <h1 style={{ margin: 0, marginRight: 'auto', width:'40%' }}>Contacts Page</h1>
-                <Button style={{ width:'10%'}} color="primary" onClick={toggle}>Add Contact</Button>
-                {contacts ? (
-                <p>{contacts.length > 0 ? (contacts.length === 1 ? `No of Contact: ${contacts.length}` : `No of Contacts: ${contacts.length}`) : ""}</p>
-                ) : (
-                <p>No contacts available</p>
-                )}
-            </div>
-            <Row className="d-flex justify-content-between mt-4 g-4">
-                {contacts===null ? (
-                "") : (
-                contacts.map((contact, index) => (
-                    <ContactCard key={index} myContact={contact} myContactEditUpdate={myContactEditUpdate} />
-                ))
-                )}
-            </Row>
-
-            <Modal isOpen={modal} toggle={toggle}>
-                <ModalHeader toggle={toggle}>{newContact.id ? 'Update Contact' : 'Add New Contact'}</ModalHeader>
-                <ModalBody>
-                <Form>
-                    <FormGroup>
-                    <Label for="name">Name</Label>
-                    <Input type="text" name="name" id="name" value={newContact.name} onChange={handleChange} required />
-                    </FormGroup>
-                    <FormGroup>
-                    <Label for="email">Email</Label>
-                    <Input type="email" name="email" id="email" value={newContact.email} onChange={handleChange} required/>
-                    </FormGroup>
-                    <FormGroup>
-                    <Label for="title">Title</Label>
-                    <Input type="text" name="title" id="title" value={newContact.title} onChange={handleChange} />
-                    </FormGroup>
-                    <FormGroup>
-                    <Label for="status">Status</Label>
-                    <Input type="text" name="status" id="status" value={newContact.status} onChange={handleChange} />
-                    </FormGroup>
-                    <FormGroup>
-                    <Label for="address">Address</Label>
-                    <Input type="text" name="address" id="address" value={newContact.address} onChange={handleChange} />
-                    </FormGroup>
-                </Form>
-                </ModalBody>
-                <ModalFooter>
-                <Button color="primary" onClick={newContact.id ? (e) => myContactEditUpdate(e, newContact.id) : handleSubmit}>{newContact.id ? 'Update' : 'Submit'}</Button>{' '}
-                <Button color="secondary" onClick={handleCancel}>Cancel</Button>
-                </ModalFooter>
-            </Modal>
-            </div>
-        );
     };
+    useEffect(() => {
+        fetchContacts();
+    }, [setContacts]);
+
+    if (loading) {
+        return <p>Fetching Contacts Loading...</p>;
+    }
+
+    return (
+        <div className='container'>
+        <div className='row' style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <h1 style={{ margin: 0, marginRight: 'auto', width:'40%' }}>Contacts Page</h1>
+            <Button style={{ width:'10%'}} color="primary" onClick={toggle}>Add Contact</Button>
+            {contacts ? (
+            <p>{contacts.length > 0 ? (contacts.length === 1 ? `No of Contact: ${contacts.length}` : `No of Contacts: ${contacts.length}`) : ""}</p>
+            ) : (
+            <p>No contacts available</p>
+            )}
+        </div>
+        <Row className="d-flex justify-content-between mt-4 g-4">
+            {contacts===null && contacts===undefined ? (
+            "") : (
+            contacts.map((contact, index) => (
+                <ContactCard key={index} myContact={contact} myContactEditUpdate={myContactEditUpdate} />
+            ))
+            )}
+        </Row>
+
+        <Modal isOpen={modal} toggle={toggle}>
+            <ModalHeader toggle={toggle}>{newContact.id ? 'Update Contact' : 'Add New Contact'}</ModalHeader>
+            <ModalBody>
+            <Form>
+                <FormGroup>
+                <Label for="name">Name</Label>
+                <Input type="text" name="name" id="name" value={newContact.name} onChange={handleChange} required />
+                </FormGroup>
+                <FormGroup>
+                <Label for="email">Email</Label>
+                <Input type="email" name="email" id="email" value={newContact.email} onChange={handleChange} required/>
+                </FormGroup>
+                <FormGroup>
+                <Label for="title">Title</Label>
+                <Input type="text" name="title" id="title" value={newContact.title} onChange={handleChange} />
+                </FormGroup>
+                <FormGroup>
+                <Label for="status">Status</Label>
+                <Input type="text" name="status" id="status" value={newContact.status} onChange={handleChange} />
+                </FormGroup>
+                <FormGroup>
+                <Label for="address">Address</Label>
+                <Input type="text" name="address" id="address" value={newContact.address} onChange={handleChange} />
+                </FormGroup>
+            </Form>
+            </ModalBody>
+            <ModalFooter>
+            <Button color="primary" onClick={newContact.id ? (e) => myContactEditUpdate(e, newContact.id) : handleSubmit}>{newContact.id ? 'Update' : 'Submit'}</Button>{' '}
+            <Button color="secondary" onClick={handleCancel}>Cancel</Button>
+            </ModalFooter>
+        </Modal>
+        </div>
+    );
+};
 
     export default Contacts;
         

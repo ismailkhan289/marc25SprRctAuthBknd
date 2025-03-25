@@ -34,10 +34,21 @@ public class ContactController {
     private ContactService contactService;
 
     @GetMapping("/contacts")
-    public Optional<Contact> getAllContacts(@AuthenticationPrincipal OAuth2User principal) {
-        Map<String, Object> attributes = principal.getAttributes();
-        String userID = attributes.get("sub").toString();
-        return contactRepository.findByUserId(userID);
+    public ResponseEntity<?> getContactForCurrentUser(
+            @AuthenticationPrincipal OAuth2User principal) {
+        try {
+            if (principal == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("User not authenticated");
+            }
+
+            String userId = principal.getAttribute("sub");
+            List<Contact> contacts = contactRepository.findByUserId(userId);
+            return ResponseEntity.ok(contacts);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Error fetching contacts for user");
+        }
     }
 
     @GetMapping("/contact/{id}")
@@ -70,7 +81,7 @@ public class ContactController {
         return ResponseEntity.ok(updatedContact);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/contact/{id}")
     public ResponseEntity<Void> deleteContact(@PathVariable UUID id) {
         contactRepository.deleteById(id);
         return ResponseEntity.noContent().build();
