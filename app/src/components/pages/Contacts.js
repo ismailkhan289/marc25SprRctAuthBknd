@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useEffect } from 'react';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, Label, Input,Row, Col, Badge, CardText, Card, CardBody, CardTitle, CardSubtitle } from 'reactstrap';
 import { useParams } from 'react-router-dom';
+import { UserContext } from '../coreComp/UserContext';
     
     const Contacts = () => {
+        
+        const {user} = useContext(UserContext);
+        const {authenticated} = useContext(UserContext);
         const [contacts, setContacts] = useState([]);
         const [loading, setLoading] = useState(true);
         const [modal, setModal] = useState(false);
@@ -131,7 +135,7 @@ import { useParams } from 'react-router-dom';
             src={"https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50"}
             alt="Profile"
             className="rounded-circle mb-2"
-            style={{ width: "80px", height: "80px", objectFit: "cover", border: "3px solid white" }}
+            style={{ width: "80px", height: "80px", objectFit: "cover", border: "3px solid green" }}
           />
       
           {/* Badges */}
@@ -177,6 +181,8 @@ import { useParams } from 'react-router-dom';
     }
 
     return (
+        <>
+        {authenticated ?
         <div className='container'>
         <div className='row' style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <h1 style={{ margin: 0, marginRight: 'auto', width:'40%' }}>Contacts Page</h1>
@@ -195,30 +201,38 @@ import { useParams } from 'react-router-dom';
             ))
             )}
         </Row>
+        
 
         <Modal isOpen={modal} toggle={toggle}>
-            <ModalHeader toggle={toggle}>{newContact.id ? 'Update Contact' : 'Add New Contact'}</ModalHeader>
+            <ModalHeader toggle={toggle} close={<button className="btn-close ms-auto" onClick={handleCancel}></button>}>
+                <span>{newContact.id ? 'Update Contact' : 'Add New Contact'}</span>
+                 
+             </ModalHeader>
             <ModalBody>
             <Form>
                 <FormGroup>
-                <Label for="name">Name</Label>
-                <Input type="text" name="name" id="name" value={newContact.name} onChange={handleChange} required />
+                    <Label for="name">Name</Label>
+                    <Input type="text" name="name" id="name" value={newContact.name} onChange={handleChange} required />
                 </FormGroup>
                 <FormGroup>
-                <Label for="email">Email</Label>
-                <Input type="email" name="email" id="email" value={newContact.email} onChange={handleChange} required/>
+                    <Label for="email">Email</Label>
+                    <Input type="email" name="email" id="email" value={newContact.email} onChange={handleChange} required/>
                 </FormGroup>
                 <FormGroup>
-                <Label for="title">Title</Label>
-                <Input type="text" name="title" id="title" value={newContact.title} onChange={handleChange} />
+                    <Label for="title">Title</Label>
+                    <Input type="text" name="title" id="title" value={newContact.title} onChange={handleChange} />
                 </FormGroup>
                 <FormGroup>
-                <Label for="status">Status</Label>
-                <Input type="text" name="status" id="status" value={newContact.status} onChange={handleChange} />
+                    <Label for="status">Status</Label>
+                    <Input type="text" name="status" id="status" value={newContact.status} onChange={handleChange} />
                 </FormGroup>
                 <FormGroup>
-                <Label for="address">Address</Label>
-                <Input type="text" name="address" id="address" value={newContact.address} onChange={handleChange} />
+                    <Label for="address">Address</Label>
+                    <Input type="text" name="address" id="address" value={newContact.address} onChange={handleChange} />
+                </FormGroup>
+                <FormGroup>
+                    <Label for="photo">Photo (Optional)</Label> 
+                    <Input type="file" name="photo" id="photo" onChange={handleChange} />
                 </FormGroup>
             </Form>
             </ModalBody>
@@ -228,6 +242,14 @@ import { useParams } from 'react-router-dom';
             </ModalFooter>
         </Modal>
         </div>
+        :
+        <div className='container'>
+            <h1>Contacts Page</h1>
+            <p>Please login to view your contacts.</p>  
+        </div>
+        }
+        </>
+
     );
 };
 
