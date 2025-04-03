@@ -5,7 +5,9 @@ import { useParams } from 'react-router-dom';
 import { UserContext } from '../coreComp/UserContext';
     
     const Contacts = () => {
-        
+        const getCsrfToken = () => {
+            return document.cookie.split(';').find(row=>row.startsWith('XSRF-TOKEN')).split('=')[1] || '';
+           }
         const {user} = useContext(UserContext);
         const {authenticated} = useContext(UserContext);
         const [contacts, setContacts] = useState([]);
@@ -20,6 +22,7 @@ import { UserContext } from '../coreComp/UserContext';
             address: ''
         };      
         
+        const [photoFile, setPhotoFile] = useState(null);
         const [newContact, setNewContact] = useState(initialNewContactValues);
         
         const toggle = () => setModal(!modal);
@@ -28,23 +31,26 @@ import { UserContext } from '../coreComp/UserContext';
             const { name, value } = e.target;
             setNewContact({ ...newContact, [name]: value });
         };
-
-        const getCsrfToken = () => {
-         return document.cookie.split(';').find(row=>row.startsWith('XSRF-TOKEN')).split('=')[1] || '';
-        }
+        const handleFileChange = (e) => {
+            setPhotoFile(e.target.files[0]);
+        };
 
       const handleSubmit = async (event) => {
         event.preventDefault();
+        const formData = new FormData();
+        formData.append("contact", new Blob([JSON.stringify(newContact)], { type: "application/json" }));
+        if (photoFile) {
+            formData.append("photo", photoFile);
+        }
         //send a POST request to the server
         await fetch('api/contact', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
                 'X-XSRF-TOKEN': getCsrfToken() // ✅ CSRF Token Add
             },
             credentials: 'include',
-            body: JSON.stringify(newContact)
+            body: formData
         })
         //parse the response
         .then(response => response.json())
@@ -79,6 +85,7 @@ import { UserContext } from '../coreComp/UserContext';
     // Function to Edit and update contact details
     const myContactEditUpdate = async (event, id) => {
         event.preventDefault();
+       
         //send a PUT request to the server
         await fetch(`api/contact/${id}`, {
             method: 'PUT',
@@ -132,7 +139,7 @@ import { UserContext } from '../coreComp/UserContext';
         <div className="d-flex flex-column align-items-center justify-content-center p-3" style={{ backgroundColor: "#b5c7b3", borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
           {/* Profile Image */}
           <img
-            src={"https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50"}
+            src={myContact.photoUrl? myContact.photoUrl:"https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50"}
             alt="Profile"
             className="rounded-circle mb-2"
             style={{ width: "80px", height: "80px", objectFit: "cover", border: "3px solid green" }}
@@ -232,7 +239,7 @@ import { UserContext } from '../coreComp/UserContext';
                 </FormGroup>
                 <FormGroup>
                     <Label for="photo">Photo (Optional)</Label> 
-                    <Input type="file" name="photo" id="photo" onChange={handleChange} />
+                    <Input type="file" accept='image/*' id="photoUrl" onChange={handleFileChange} />
                 </FormGroup>
             </Form>
             </ModalBody>
