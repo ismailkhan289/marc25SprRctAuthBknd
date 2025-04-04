@@ -114,9 +114,46 @@ public class ContactController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated"); // User not authenticated
     }
 
-    @PutMapping("/contact/{id}")
-    public ResponseEntity<Contact> updateContact(@PathVariable UUID id, @Valid @RequestBody Contact contactDetails) {
-        Contact updatedContact = contactRepository.save(contactDetails);
+    @PutMapping(value = "/contact/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateContact(
+            @PathVariable UUID id,
+            @RequestPart("contact") @Valid Contact contactDetails,
+            @RequestPart(value = "photo", required = false) MultipartFile multipartFile,
+            @AuthenticationPrincipal OAuth2User principal) throws URISyntaxException {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("User not authenticated");
+        }
+        log.info("Received request: contact={}, photo={}", contactDetails,
+                multipartFile != null ? multipartFile.getOriginalFilename() : "No file");
+        Map<String, Object> attributes = principal.getAttributes(); // Get user attributes
+        String userID = attributes.get("sub").toString(); // Get user ID from attributes
+        if (multipartFile != null && !multipartFile.isEmpty()) { // Check if a file is uploaded Handle file upload
+
+            try {
+                String originalFilename = multipartFile.getOriginalFilename();
+                if (originalFilename == null) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("Uploaded file must have a valid name");
+                }
+                String fileName = UUID.randomUUID() + "_" + StringUtils.cleanPath(originalFilename); // Generate a
+                                                                                                     // unique file
+                                                                                                     // name
+                // unique file name
+                Path filePath = Paths.get(UPLOAD_DIR + File.separator + fileName); // Define the file path
+                Files.createDirectories(filePath.getParent()); // Create directories if they don't exist
+                Files.write(filePath, multipartFile.getBytes()); // Write the file to the server
+                contactDetails.setPhotoUrl("/uploads/" + fileName); // Assuming you have a field for the photo path in
+                                                                    // your
+                // Contact model
+            } catch (IOException e) {
+                log.error("Error creating directories or writing file", e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error saving contact photo");
+            }
+        }
+
+        Contact updatedContact = contactService.saveContact(contactDetails, userID);
         return ResponseEntity.ok(updatedContact);
     }
 

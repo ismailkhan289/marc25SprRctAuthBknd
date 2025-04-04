@@ -57,7 +57,9 @@ import { UserContext } from '../coreComp/UserContext';
         .then(data => {
             setContacts([...contacts, data]);
             setNewContact(initialNewContactValues);
-            toggle();
+            setPhotoFile(null);
+            setLoading(false);
+            toggle();   
         })
         .catch(error => console.error('Error adding contact:', error));
     }
@@ -86,22 +88,28 @@ import { UserContext } from '../coreComp/UserContext';
     const myContactEditUpdate = async (event, id) => {
         event.preventDefault();
        
+        const formData = new FormData();
+        formData.append("contact", new Blob([JSON.stringify(newContact)], { type: "application/json" }));
+        if (photoFile) {
+            formData.append("photo", photoFile);
+        }
+
         //send a PUT request to the server
         await fetch(`api/contact/${id}`, {
             method: 'PUT',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
                 'X-XSRF-TOKEN': getCsrfToken() // ✅ CSRF Token Add
             },
             credentials: 'include',
-            body: JSON.stringify(newContact)
+            body: formData
         })
         //parse the response
         .then(response => response.json())
         .then(data => {
             setContacts(contacts.map(contact => contact.id === data.id ? data : contact));
             setNewContact(initialNewContactValues);
+            setPhotoFile(null);
             toggle();
         }) 
         .catch(error => console.error('Error updating contact:', error));
